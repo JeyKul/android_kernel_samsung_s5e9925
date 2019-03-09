@@ -64,3 +64,5 @@ obj-y				+= samsung/
 ccflags-$(CONFIG_TZDEV) += -I$(srctree)/drivers/misc/tzdev/include
 obj-$(CONFIG_TZDEV)     += tzdev/
 obj-$(CONFIG_SAMSUNG_TUI)	+= tui/
+# Gaming mode
+obj-$(CONFIG_GAMING_CONTROL)		+= gaming_control.o

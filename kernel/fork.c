@@ -116,6 +116,9 @@
 #include <linux/fslog.h>
 #endif
 
+/* Gaming control */
+#include <linux/gaming_control.h>
+
 /*
  * Minimum number of threads to boot the kernel
  */
@@ -2554,6 +2557,8 @@ pid_t kernel_clone(struct kernel_clone_args *args)
 	    (args->flags & CLONE_PARENT_SETTID) &&
 	    (args->pidfd == args->parent_tid))
 		return -EINVAL;
+
+	game_option(current, GAME_START);
 
 	/*
 	 * Determine whether and which event to report to ptracer.  When
