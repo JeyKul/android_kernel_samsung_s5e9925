@@ -7903,14 +7903,6 @@ CONFIG_INIT_ON_ALLOC_DEFAULT_ON=y
 # end of Memory initialization
 # end of Kernel hardening options
 
-CONFIG_PROCA=y
-CONFIG_PROCA_GKI_10=y
-CONFIG_PROCA_S_OS=y
-CONFIG_GAF=y
-# CONFIG_GAF_V3 is not set
-# CONFIG_GAF_V4 is not set
-# CONFIG_GAF_V5 is not set
-CONFIG_GAF_V6=y
 # CONFIG_MEMORY_ZEROISATION is not set
 # CONFIG_MZ_PAGE_V2 is not set
 CONFIG_FIVE=y
