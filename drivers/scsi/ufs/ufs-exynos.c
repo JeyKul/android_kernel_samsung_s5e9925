@@ -65,11 +65,11 @@ enum {
 	UFS_S_TOKEN_NUM,
 };
 
-/* UFSHCD error handling flags */
+/* UFSHCD error handling flags
 enum {
 	UFSHCD_EH_IN_PROGRESS = (1 << 0),
 };
-
+*/
 static const char *ufs_s_str_token[UFS_S_TOKEN_NUM] = {
 	"fail to",
 };
