@@ -4853,6 +4853,8 @@
 			vdd-1.3-rfa-supply = <0xd7>;
 			vdd-3.3-ch0-supply = <0xd8>;
 			phandle = <0x1ad>;
+
+			qcom,snoc-host-cap-8bit-quirk;
 		};
 	};
 
