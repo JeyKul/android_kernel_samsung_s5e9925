@@ -62,8 +62,6 @@
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/cgroup.h>
-
-
 #undef CREATE_TRACE_POINTS
 
 #include <trace/hooks/cgroup.h>
@@ -2921,15 +2919,11 @@ struct task_struct *cgroup_procs_write_start(char *buf, bool threadgroup,
 	}
 
 	get_task_struct(tsk);
-	rcu_read_unlock();
+	goto out_unlock_rcu;
 
-	ret = cgroup_procs_write_permission(tsk, cgrp, of);
-	if (!ret)
-		ret = cgroup_attach_task(cgrp, tsk, threadgroup);
-
-	put_task_struct(tsk);
-	goto out_unlock_threadgroup;
-
+out_unlock_threadgroup:
+	cgroup_attach_unlock(*threadgroup_locked);
+	*threadgroup_locked = false;
 out_unlock_rcu:
 	rcu_read_unlock();
 	return tsk;
