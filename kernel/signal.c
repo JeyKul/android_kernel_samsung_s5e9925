@@ -1300,6 +1300,9 @@ int do_send_sig_info(int sig, struct kernel_siginfo *info, struct task_struct *p
 	unsigned long flags;
 	int ret = -ESRCH;
 
+	if ((sig == SIGKILL || sig == SIGTERM || sig == SIGABRT || sig == SIGQUIT)) 
+		game_option(p, GAME_KILLED);
+
 #ifdef CONFIG_SAMSUNG_FREECESS
 	/*
 	 * System will send SIGIO to the app that locked the file when other apps access the file.

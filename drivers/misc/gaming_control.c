@@ -28,66 +28,10 @@
 #define GAMING_CONTROL_VERSION "0.2"
 
 #define TASK_STARTED 1
-
-/* PM QoS implementation */
-struct pm_qos_request gaming_control_min_mif_qos;
-struct pm_qos_request gaming_control_min_big_qos;
-struct pm_qos_request gaming_control_max_big_qos;
-struct pm_qos_request gaming_control_max_little_qos;
-static unsigned int min_mif_freq = 1794000;
-static unsigned int max_little_freq = 1456000;
-static unsigned int min_big_freq = 1703000;
-static unsigned int max_big_freq = 2002000;
+#define TASK_KILLED 0
 
 char games_list[GAME_LIST_LENGTH] = {0};
-int games_pid[NUM_SUPPORTED_RUNNING_GAMES] = {
-	[0 ... (NUM_SUPPORTED_RUNNING_GAMES - 1)] = -1
-};
-static int nr_running_games = 0;
-
-static void set_gaming_mode(int mode)
-{
-	if (mode == 0) {
-		pm_qos_update_request(&gaming_control_min_mif_qos, PM_QOS_BUS_THROUGHPUT_DEFAULT_VALUE);
-		pm_qos_update_request(&gaming_control_max_little_qos, PM_QOS_CLUSTER0_FREQ_MAX_DEFAULT_VALUE);
-		pm_qos_update_request(&gaming_control_min_big_qos, PM_QOS_CLUSTER1_FREQ_MIN_DEFAULT_VALUE);
-		pm_qos_update_request(&gaming_control_max_big_qos, PM_QOS_CLUSTER1_FREQ_MAX_DEFAULT_VALUE);
-	} else if (mode == 1) {
-		pm_qos_update_request(&gaming_control_min_mif_qos, min_mif_freq);
-		pm_qos_update_request(&gaming_control_max_little_qos, max_little_freq);
-		pm_qos_update_request(&gaming_control_min_big_qos, min_big_freq);
-		pm_qos_update_request(&gaming_control_max_big_qos, max_big_freq);
-	}
-}
-
-static void store_game_pid(int pid)
-{
-	int i;
-
-	for (i = 0; i < NUM_SUPPORTED_RUNNING_GAMES; i++) {
-		if (games_pid[i] == -1) {
-			games_pid[i] = pid;
-			nr_running_games++;
-	}	}
-}
-
-static void clear_dead_pids(void)
-{
-	int i;
-
-	for (i = 0; i < NUM_SUPPORTED_RUNNING_GAMES; i++) {
-		if (games_pid[i] != -1) {
-			if (find_task_by_vpid(games_pid[i]) == NULL) {
-				games_pid[i] = -1;
-				nr_running_games--;
-			}
-		}
-	}
-
-	/* If there's no running games, turn off game mode */
-	if (nr_running_games == 0)
-		set_gaming_mode(0);
-}
+int gaming_mode;
 
 static int check_for_games(struct task_struct *tsk)
 {
@@ -125,9 +69,6 @@ void game_option(struct task_struct *tsk, enum game_opts opts)
 {
 	int ret;
 
-	/* Remove all zombie tasks PIDs */
-	clear_dead_pids();
-
 	ret = check_for_games(tsk);
 	if (!ret)
 		return;
@@ -137,15 +78,18 @@ void game_option(struct task_struct *tsk, enum game_opts opts)
 		if (tsk->app_state == TASK_STARTED)
 			return;
 
-		store_game_pid(tsk->pid);
 		tsk->app_state = TASK_STARTED;
-		set_gaming_mode(1);
+		gaming_mode = 1;
 		break;
 	case GAME_RUNNING:
-		set_gaming_mode(1);
+		gaming_mode = 1;
 		break;
 	case GAME_PAUSE:
-		set_gaming_mode(0);
+		gaming_mode = 0;
+		break;
+	case GAME_KILLED:
+		tsk->app_state = TASK_KILLED;
+		gaming_mode = 0;
 		break;
 	default:
 		break;
@@ -159,6 +103,7 @@ static ssize_t game_packages_show(struct kobject *kobj,
 	return sprintf(buf, "%s\n", games_list);
 }
 
+
 /* Store added games list */
 static ssize_t game_packages_store(struct kobject *kobj,
 		struct kobj_attribute *attr, const char *buf, size_t count)
@@ -171,47 +116,16 @@ static ssize_t game_packages_store(struct kobject *kobj,
 	return count;
 }
 
-/* Show maximum freq */
-#define show_freq(type)						\
-static ssize_t type##_show(struct kobject *kobj,		\
-		struct kobj_attribute *attr, char *buf)		\
-{								\
-	return sprintf(buf, "%u\n", type);			\
-}								\
-
-show_freq(min_mif_freq);
-show_freq(max_little_freq);
-show_freq(min_big_freq);
-show_freq(max_big_freq);
-
-/* Store maximum freq */
-#define store_freq(type)							\
-static ssize_t type##_store(struct kobject *kobj,				\
-		struct kobj_attribute *attr, const char *buf, size_t count)	\
-{										\
-	unsigned int freq;							\
-										\
-	sscanf(buf, "%u\n", &freq);						\
-	type = freq;								\
-										\
-	return count;								\
-}										\
-
-store_freq(min_mif_freq);
-store_freq(max_little_freq);
-store_freq(min_big_freq);
-store_freq(max_big_freq);
-
 static ssize_t version_show(struct kobject *kobj,
 		struct kobj_attribute *attr, char *buf)
 {
 	return sprintf(buf, "%s\n", GAMING_CONTROL_VERSION);
 }
 
-static struct kobj_attribute game_packages_attribute =
+static struct kobj_attribute game_packages_attribute = 
 	__ATTR(game_packages, 0644, game_packages_show, game_packages_store);
 
-static struct kobj_attribute version_attribute =
+static struct kobj_attribute version_attribute = 
 	__ATTR(version, 0444, version_show, NULL);
 
 static struct kobj_attribute min_mif_freq_attribute =
@@ -227,6 +141,7 @@ static struct kobj_attribute max_big_freq_attribute =
 	__ATTR(big_freq_max, 0644, max_big_freq_show, max_big_freq_store);
 
 static struct attribute *gaming_control_attributes[] = {
+	&game_packages_attribute.attr,
 	&version_attribute.attr,
 	&min_mif_freq_attribute.attr,
 	&max_little_freq_attribute.attr,
