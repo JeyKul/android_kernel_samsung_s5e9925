@@ -676,9 +676,6 @@ struct task_struct {
 	unsigned int			flags;
 	unsigned int			ptrace;
 
-	/* Android app state */
-	int app_state;
-
 #ifdef CONFIG_SMP
 	int				on_cpu;
 	struct __call_single_node	wake_entry;

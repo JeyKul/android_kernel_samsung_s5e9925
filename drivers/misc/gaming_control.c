@@ -29,91 +29,7 @@
 #define TASK_STARTED 1
 #define TASK_KILLED 0
 
-char games_list[GAME_LIST_LENGTH] = {0};
 int gaming_mode;
-
-static int check_for_games(struct task_struct *tsk)
-{
-	char *cmdline;
-	int ret;
-
-	cmdline = kmalloc(GAME_LIST_LENGTH, GFP_KERNEL);
-	if (!cmdline)
-		return 0;
-
-	ret = get_cmdline(tsk, cmdline, GAME_LIST_LENGTH);
-	if (ret == 0) {
-		kfree(cmdline);
-		return 0;
-	}
-
-	/* Invalid Android process name. Bail out */
-	if (strlen(cmdline) < 7) {
-		kfree(cmdline);
-		return 0;
-	}
-
-	/* tsk isn't a game. Bail out */
-	if (strstr(games_list, cmdline) == NULL) {
-		kfree(cmdline);
-		return 0;
-	}
-
-	kfree(cmdline);
-
-	return 1;
-}
-
-void game_option(struct task_struct *tsk, enum game_opts opts)
-{
-	int ret;
-
-	ret = check_for_games(tsk);
-	if (!ret)
-		return;
-
-	switch (opts) {
-	case GAME_START:
-		if (tsk->app_state == TASK_STARTED)
-			return;
-
-		tsk->app_state = TASK_STARTED;
-		gaming_mode = 1;
-		break;
-	case GAME_RUNNING:
-		gaming_mode = 1;
-		break;
-	case GAME_PAUSE:
-		gaming_mode = 0;
-		break;
-	case GAME_KILLED:
-		tsk->app_state = TASK_KILLED;
-		gaming_mode = 0;
-		break;
-	default:
-		break;
-	}
-}
-
-/* Show added games list */
-static ssize_t game_packages_show(struct kobject *kobj,
-		struct kobj_attribute *attr, char *buf)
-{
-	return sprintf(buf, "%s\n", games_list);
-}
-
-
-/* Store added games list */
-static ssize_t game_packages_store(struct kobject *kobj,
-		struct kobj_attribute *attr, const char *buf, size_t count)
-{
-	char games[GAME_LIST_LENGTH];
-
-	sscanf(buf, "%s", games);
-	sprintf(games_list, "%s", buf);
-
-	return count;
-}
 
 static ssize_t version_show(struct kobject *kobj,
 		struct kobj_attribute *attr, char *buf)
@@ -121,14 +37,10 @@ static ssize_t version_show(struct kobject *kobj,
 	return sprintf(buf, "%s\n", GAMING_CONTROL_VERSION);
 }
 
-static struct kobj_attribute game_packages_attribute = 
-	__ATTR(game_packages, 0644, game_packages_show, game_packages_store);
-
 static struct kobj_attribute version_attribute = 
 	__ATTR(version, 0444, version_show, NULL);
 
 static struct attribute *gaming_control_attributes[] = {
-	&game_packages_attribute.attr,
 	&version_attribute.attr,
 	NULL
 };
